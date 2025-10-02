@@ -1,5 +1,7 @@
-cmake_minimum_required(VERSION 3.12)
-cmake_policy(SET CMP0074 NEW)
+cmake_minimum_required(VERSION 3.27)
+# cmake_policy(SET CMP0074 NEW)
+# cmake_policy(SET CMP0144 NEW)
+
 project(libuvc
   VERSION 0.0.7
   LANGUAGES C
