@@ -1,51 +1,45 @@
-#[==============================================[
-FindLibUSB
------------
+# FindLibUSB.cmake  –  works for libusb-1.x
+# Creates:  LibUSB_FOUND
+#           LibUSB_INCLUDE_DIRS
+#           LibUSB_LIBRARIES
+#           LibUSB::LibUSB  (imported target)
 
-Searching libusb-1.0 library and creating imported 
-target LibUSB::LibUSB
-
-#]==============================================]
-
-# TODO Append parts for Version compasion and REQUIRED support
-
-if (MSVC OR MINGW)
-    return()
+# 1. Allow caller-supplied hints
+if(DEFINED LibUSB_ROOT_DIR)
+    list(APPEND CMAKE_PREFIX_PATH "${LibUSB_ROOT_DIR}")
 endif()
 
-if (NOT TARGET LibUSB::LibUSB)
-  find_package(PkgConfig)
-  pkg_check_modules(LibUSB REQUIRED
-    libusb-1.0
-  )
+# 2. Normal search
+find_path(LibUSB_INCLUDE_DIR
+          NAMES libusb.h
+          PATH_SUFFIXES libusb-1.0
+          HINTS ${LibUSB_ROOT_DIR}/include)
 
-  if(LibUSB_FOUND)
-    message(STATUS "libusb-1.0 found using pkgconfig")
+find_library(LibUSB_LIBRARY
+             NAMES usb-1.0 usb libusb-1.0
+             HINTS ${LibUSB_ROOT_DIR}/lib ${LibUSB_ROOT_DIR}/lib64)
 
-    add_library(LibUSB::LibUSB
-      UNKNOWN IMPORTED
-    )
-    if (DEFINED LibUSB_INCLUDE_DIRS AND NOT LibUSB_INCLUDE_DIRS STREQUAL "")
-      set_target_properties(LibUSB::LibUSB PROPERTIES
-        INTERFACE_INCLUDE_DIRECTORIES ${LibUSB_INCLUDE_DIRS}
-      )
-    endif()
-
-    if(LibUSB_LIBRARIES)
-      find_library(LibUSB_LIBRARY
-        NAMES ${LibUSB_LIBRARIES}
-        PATHS ${LibUSB_LIBDIR} ${LibUSB_LIBRARY_DIRS}
-      )
-      if(LibUSB_LIBRARY)
-        set_target_properties(LibUSB::LibUSB PROPERTIES
-          IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-          IMPORTED_LOCATION ${LibUSB_LIBRARY}
-        )
-      else()
-        message(WARNING "Could not found libusb-1.0 library file")
-      endif()
-    endif()
-  endif()
-else()
-  message(WARNING "libusb-1.0 could not be found using pkgconfig")
+# 3. If caller gave both paths explicitly, trust them
+if(LibUSB_LIBRARY AND LibUSB_INCLUDE_DIR AND NOT LibUSB_FOUND)
+    set(LibUSB_FOUND TRUE)
+    set(LibUSB_LIBRARIES "${LibUSB_LIBRARY}")
+    set(LibUSB_INCLUDE_DIRS "${LibUSB_INCLUDE_DIR}")
 endif()
+
+# 4. Standard handling (makes missing paths fatal)
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(LibUSB
+                                  DEFAULT_MSG
+                                  LibUSB_LIBRARY
+                                  LibUSB_INCLUDE_DIR)
+
+# 5. Create imported target
+if(LibUSB_FOUND AND NOT TARGET LibUSB::LibUSB)
+    add_library(LibUSB::LibUSB STATIC IMPORTED GLOBAL)
+    set_target_properties(LibUSB::LibUSB
+        PROPERTIES
+        IMPORTED_LOCATION "${LibUSB_LIBRARY}"
+        INTERFACE_INCLUDE_DIRECTORIES "${LibUSB_INCLUDE_DIR}")
+endif()
+
+mark_as_advanced(LibUSB_INCLUDE_DIR LibUSB_LIBRARY)
